@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESSEL Settings</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #F3F4F6;
+            margin: 0;
+            padding: 40px;
+            color: #1F2937;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        select,
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            background: #2563EB;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #1D4ED8;
+        }
+
+        .info {
+            font-size: 13px;
+            color: #6B7280;
+            margin-top: -8px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>VESSEL Settings</h1>
+
+        <div class="section">
+            <label>ML Engine Backend</label>
+            <select id="engineType">
+                <option value="auto">Auto-Detect (Best Available)</option>
+                <option value="transformers">Transformers.js (In-Browser)</option>
+                <option value="firefox">Firefox Managed (Trial)</option>
+                <option value="mock">Mock Engine (Testing)</option>
+            </select>
+            <p class="info">Select which inference backend to use for analysis.</p>
+        </div>
+
+        <div class="section">
+            <label>Risk Threshold (0.0 - 1.0)</label>
+            <input type="number" id="riskThreshold" min="0" max="1" step="0.1" value="0.8">
+            <p class="info">Messages with a threat score above this will be blocked.</p>
+        </div>
+
+        <button id="saveBtn">Save Settings</button>
+        <span id="msg" style="margin-left: 10px; color: green; display: none;">Saved!</span>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>
