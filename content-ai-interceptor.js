@@ -9,7 +9,8 @@
         'button[aria-label="Send message"]', // Common generic
         'button[data-testid="send-button"]', // ChatGPT-like
         '.ai-trigger', // For our manual testing
-        '#vessel-simulation-btn' // For simulation
+        '#vessel-simulation-btn', // For simulation
+        '#ai-assistant'
     ];
 
     console.log('[VESSEL] AI Interceptor Loaded');
