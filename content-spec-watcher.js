@@ -86,49 +86,9 @@
     }
 
     function showSuggestionsModal(element, requirements) {
-        // Format the content
-        let html = '<ul style="list-style: none; padding: 0;">';
-        requirements.forEach((req, index) => {
-            html += `
-                <li style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
-                    <strong>${req.category}</strong>
-                    <p style="font-size: 13px; color: #666; margin: 4px 0;">${req.description}</p>
-                    <button 
-                        class="vessel-btn vessel-btn-secondary vessel-inject-btn" 
-                        data-index="${index}"
-                        style="font-size: 12px; padding: 4px 10px;"
-                    >
-                        + Inject
-                    </button>
-                    <div style="display:none;" id="req-text-${index}">${req.suggestion}</div>
-                </li>
-            `;
-        });
-        html += '</ul>';
-
-        uiUtils.showModal(
-            "Security Requirements Suggestions",
-            html,
-            () => { }, // Primary action (maybe "Inject All" later)
-            "Done" // Primary label
-        );
-
-        // Attach listeners to inject buttons inside the modal
-        // Note: The modal is in Shadow DOM, so we need to find it there.
-        const shadow = uiUtils.getShadowRoot();
-        const buttons = shadow.querySelectorAll('.vessel-inject-btn');
-        buttons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = e.target.getAttribute('data-index');
-                const textToInject = shadow.getElementById(`req-text-${index}`).innerText;
-
-                // Inject logic
-                injectText(element, `\n\n**Security Requirement (${requirements[index].category}):**\n${textToInject}`);
-
-                // Visual feedback
-                e.target.textContent = "Injuected!";
-                e.target.disabled = true;
-            });
+        uiUtils.showSpecModal(requirements, (index, textToInject) => {
+            // Inject logic
+            injectText(element, `\n\n**Security Requirement (${requirements[index].category}):**\n${textToInject}`);
         });
     }
 
