@@ -1,16 +1,18 @@
 import { mlEngine } from './lib/ml-engine.js';
 import { sanitizeDOM } from './lib/sanitizer.js';
+import { policyManager } from './lib/policy-manager.js';
 
-// Initialize ML Engine on startup
 (async () => {
     console.log('[VESSEL] Background Service Worker Starting...');
-    await mlEngine.initialize();
-    console.log('[VESSEL] ML Engine Ready.');
+    await Promise.all([
+        mlEngine.initialize(),
+        policyManager.loadPolicy()
+    ]);
+    console.log('[VESSEL] Services Ready (ML + Policy).');
 })();
 
 // Message Handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // Return true to indicate async response
     handleMessage(request, sender).then(sendResponse);
     return true;
 });
@@ -27,9 +29,6 @@ async function handleMessage(request, sender) {
     }
 }
 
-/**
- * Analyzes page content for prompt injection.
- */
 async function analyzePage(html) {
     try {
         console.log('[VESSEL] Sanitizing content...');
@@ -45,9 +44,7 @@ async function analyzePage(html) {
     }
 }
 
-/**
- * Analyzes spec text for missing security requirements.
- */
+
 async function analyzeSpec(text) {
     if (!text) return { missingRequirements: [] };
 
@@ -79,22 +76,18 @@ async function analyzeSpec(text) {
         }
     ];
 
+    // Merge with custom policy requirements
+    const policy = policyManager.get();
+    if (policy.customRequirements && Array.isArray(policy.customRequirements)) {
+        SECURITY_REQUIREMENTS.push(...policy.customRequirements);
+    }
+
     const missing = [];
     const lowerText = text.toLowerCase();
 
-    // Mock Logic: Check if keywords are missing
-    // In a real implementation, we would use NLI (Natural Language Inference) model
-    // to check entailment: "Does this text entail [Requirement]?"
-
     for (const req of SECURITY_REQUIREMENTS) {
         const hasKeyword = req.keywords.some(k => lowerText.includes(k));
-
-        // If no keywords found, assume it might be missing
-        // (Very naive, but works for the "Check" logic in Task 6 plan)
         if (!hasKeyword) {
-            // Basic heuristic: check if it returns a high score for "Not Relevant" 
-            // or low score for existing.
-            // For now, we simulate finding "missing" items.
             missing.push(req);
         }
     }
