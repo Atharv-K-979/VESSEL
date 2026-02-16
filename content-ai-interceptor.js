@@ -44,18 +44,10 @@
             if (response && response.isThreat) {
                 console.warn('[VESSEL] Threat detected:', response);
 
-                uiUtils.showModal(
-                    "Security Alert: Prompt Injection Detected",
-                    `
-              <p><strong>Threat Score:</strong> ${Math.round(response.score * 100)}%</p>
-              <p><strong>Reason:</strong> ${response.reason}</p>
-              <p>VESSEL blocked this action to protect your AI session.</p>
-            `,
-                    () => {
-                        console.log('[VESSEL] User acknowledged threat.');
-                    },
-                    "Dismiss"
-                );
+                uiUtils.showAIModal(response, () => {
+                    // "View Sanitized" logic placeholder
+                    console.log('[VESSEL] User requested to view sanitized input (not yet implemented).');
+                });
             } else {
                 console.log('[VESSEL] Page safe. Resuming action.');
 
