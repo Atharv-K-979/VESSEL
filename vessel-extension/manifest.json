@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "VESSEL - AI Security & Privacy",
+  "version": "1.0.0",
+  "description": "Protects developers using AI coding assistants against prompt injection and ensures secure specifications.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-ai-interceptor.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-spec-watcher.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/ml-engine.js", "lib/sanitizer.js", "lib/ui-utils.js", "icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vessel@example.com",
+      "strict_min_version": "109.0"
+    }
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
