@@ -1,82 +1,113 @@
-(async () => {
-    const uiUtilsParam = chrome.runtime.getURL('lib/ui-utils.js');
-    const uiUtils = await import(uiUtilsParam);
 
-    // TODO: move this to chrome.storage.managed policies later
-    let AI_BUTTON_SELECTORS = [
-        'button[aria-label="Send message"]',
-        'button[data-testid="send-button"]', 
-        '.ai-trigger',
-        '#vessel-simulation-btn', 
-        '#ai-assistant'
+(async () => {
+    const src = chrome.runtime.getURL('lib/ui-utils.js');
+    const { createModal, escapeHtml } = await import(src);
+
+    const AI_BUTTON_SELECTORS = [
+        '[data-testid="comet-summarize"]',
+        '.perplexity-comet-trigger',
+        '.ai-summarize-btn',
+        // Common ones
+        '[aria-label*="Summarize"]',
+        '[title*="Summarize"]'
     ];
 
-    console.log('[VESSEL] AI Interceptor Loaded');
+    let modalInstance = null;
 
-    const processedEvents = new WeakSet();
+    document.addEventListener('click', handleAIClick, true);
 
-    function getPageContent() {
-        return document.documentElement.outerHTML;
-    }
+    function handleAIClick(event) {
+        const target = event.target;
+        const isAIButton = AI_BUTTON_SELECTORS.some(sel => target.matches(sel) || target.closest(sel));
 
-    async function handleInterception(event) {
-        if (processedEvents.has(event)) {
-            return;
-        }
-        const target = event.target.closest('button');
-        if (!target) return;
-        const isMatch = AI_BUTTON_SELECTORS.some(selector => target.matches(selector));
-        if (!isMatch) return;
-        console.log('[VESSEL] Intercepted click on:', target);
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const toast = uiUtils.showBadge("Scanning...", () => { });
-        const pageContent = getPageContent();
-        try {
-            const response = await chrome.runtime.sendMessage({
+        if (isAIButton) {
+            console.log('VESSEL: Intercepted AI button click.');
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            const pageContent = document.body.innerHTML;
+            chrome.runtime.sendMessage({
                 action: 'analyzePage',
                 html: pageContent
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('VESSEL: Analysis failed', chrome.runtime.lastError);
+                    return;
+                }
+
+                if (response.score > 0.7) {
+                    showRiskModal(response, target);
+                } else {
+                    bypassAndClick(target);
+                }
             });
-
-            toast.remove();
-
-            if (response && response.isThreat) {
-                console.warn('[VESSEL] Threat detected:', response);
-
-                uiUtils.showAIModal(response, () => {
-                    // "View Sanitized" logic placeholder
-                    console.log('[VESSEL] User requested to view sanitized input (not yet implemented).');
-                });
-            } else {
-                console.log('[VESSEL] Page safe. Resuming action.');
-
-                const newEvent = new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window,
-                    detail: event.detail,
-                    screenX: event.screenX,
-                    screenY: event.screenY,
-                    clientX: event.clientX,
-                    clientY: event.clientY,
-                    ctrlKey: event.ctrlKey,
-                    altKey: event.altKey,
-                    shiftKey: event.shiftKey,
-                    metaKey: event.metaKey,
-                    button: event.button,
-                    buttons: event.buttons,
-                    relatedTarget: event.relatedTarget
-                });
-
-                processedEvents.add(newEvent);
-                target.dispatchEvent(newEvent);
-            }
-        } catch (err) {
-            toast.remove();
-            console.error('[VESSEL] Analysis failed:', err);
-            uiUtils.showBadge("Error scanning. Try again.", () => { });
         }
     }
 
-    document.addEventListener('click', handleInterception, true);
+    function showRiskModal(analysis, originalTarget) {
+        const content = `
+            <div style="color: #4B5563; margin-bottom: 12px;">
+                <p><strong>Threat Score:</strong> <span style="color: #DC2626; font-weight: bold;">${(analysis.score * 10).toFixed(1)}/10</span></p>
+                <p>This page contains hidden text or instructions that may manipulate the AI assistant.</p>
+                <div style="margin-top: 10px; font-size: 13px; color: #6B7280;">
+                    Detected: Potential Prompt Injection
+                </div>
+            </div>
+        `;
+
+        if (modalInstance) modalInstance.hide();
+
+        modalInstance = createModal(
+            "⚠️ Security Risk Detected",
+            content,
+            [
+                {
+                    text: "View Sanitized Version",
+                    primary: true,
+                    onClick: () => {
+                        modalInstance.hide();
+                        showSanitizedVersion(analysis.sanitized);
+                    }
+                },
+                {
+                    text: "Proceed Anyway (Risky)",
+                    primary: false,
+                    onClick: () => {
+                        modalInstance.hide();
+                        bypassAndClick(originalTarget);
+                    }
+                },
+                {
+                    text: "Cancel",
+                    primary: false,
+                    onClick: () => modalInstance.hide()
+                }
+            ]
+        );
+        modalInstance.show();
+    }
+
+    function showSanitizedVersion(cleanText) {
+
+        chrome.runtime.sendMessage({ action: 'summarize', text: cleanText }, (response) => {
+            const summary = response || "Summary unavailable.";
+
+            const resultModal = createModal(
+                "Sanitized Content Summary",
+                `<div style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;">${escapeHtml(summary)}</div>`,
+                [{ text: "Close", primary: true, onClick: () => resultModal.hide() }]
+            );
+            resultModal.show();
+        });
+    }
+
+    function bypassAndClick(target) {
+        document.removeEventListener('click', handleAIClick, true);
+        target.click();
+        setTimeout(() => {
+            document.addEventListener('click', handleAIClick, true);
+        }, 100);
+    }
+
 })();

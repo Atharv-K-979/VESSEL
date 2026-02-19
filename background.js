@@ -98,17 +98,14 @@ function getRequirementTemplate(category) {
     return templates[category] || "Security requirement missing.";
 }
 
-// General Summarization
 async function summarizeContent(text) {
     return await MLEngine.summarize(text);
 }
 
-// Logging and Stats
 async function logIncident(data) {
     const { incidents = [] } = await chrome.storage.local.get('incidents');
     incidents.unshift(data);
 
-    // Keep last 50 incidents
     if (incidents.length > 50) incidents.pop();
 
     await chrome.storage.local.set({ incidents });
@@ -121,7 +118,6 @@ async function updateStats(riskScore, isBlock) {
 
     const newTotal = (stats.totalScans || 0) + 1;
     const currentAvg = stats.avgRisk || 0;
-    // Moving average approximation
     const newAvg = ((currentAvg * (newTotal - 1)) + riskScore) / newTotal;
 
     const newStats = {
