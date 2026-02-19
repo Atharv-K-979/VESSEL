@@ -20,12 +20,21 @@
         const target = event.target;
         const isAIButton = AI_BUTTON_SELECTORS.some(sel => target.matches(sel) || target.closest(sel));
 
+        // if (isAIButton) {
+        //     console.log('VESSEL: Intercepted AI button click.');
+
+        //     event.preventDefault();
+        //     event.stopImmediatePropagation();
         if (isAIButton) {
             console.log('VESSEL: Intercepted AI button click.');
 
+            if (!chrome.runtime?.id) {
+                alert("VESSEL was updated. Please refresh the page to continue protection.");
+                return;
+            }
+
             event.preventDefault();
             event.stopImmediatePropagation();
-
             const pageContent = document.body.innerHTML;
             chrome.runtime.sendMessage({
                 action: 'analyzePage',

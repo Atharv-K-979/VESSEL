@@ -32,20 +32,39 @@
             analyzeField(target);
         }, DEBOUNCE_MS);
     }
+async function analyzeField(target) {
+    const text = getTextFromField(target);
+    if (!text || text.length < 10) return;
 
-    async function analyzeField(target) {
-        const text = getTextFromField(target);
-        if (!text || text.length < 10) return; // Ignore empty/short fields
-
-        chrome.runtime.sendMessage({
-            action: 'analyzeSpec',
-            text: text
-        }, (response) => {
-            if (chrome.runtime.lastError || !response || !response.missing) return;
-
-            updateUI(target, response.missing);
-        });
+    // Check if context is valid before messaging
+    if (!chrome.runtime?.id) {
+        console.warn('VESSEL: Extension reloaded. Please refresh this page to continue.');
+        return;
     }
+
+    chrome.runtime.sendMessage({
+        action: 'analyzeSpec',
+        text: text
+    }, (response) => {
+        if (chrome.runtime.lastError) return;
+        if (response && response.missing) {
+            updateUI(target, response.missing);
+        }
+    });
+}
+    // async function analyzeField(target) {
+    //     const text = getTextFromField(target);
+    //     if (!text || text.length < 10) return; // Ignore empty/short fields
+
+    //     chrome.runtime.sendMessage({
+    //         action: 'analyzeSpec',
+    //         text: text
+    //     }, (response) => {
+    //         if (chrome.runtime.lastError || !response || !response.missing) return;
+
+    //         updateUI(target, response.missing);
+    //     });
+    // }
 
     function getTextFromField(element) {
         if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
