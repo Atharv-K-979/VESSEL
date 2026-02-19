@@ -1,133 +1,188 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VESSEL Status</title>
+    <title>VESSEL Security</title>
     <style>
         body {
             width: 320px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
-            padding: 16px;
-            background-color: #F9FAFB;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #F9FAFB;
             color: #1F2937;
         }
+
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .logo {
-            font-size: 18px;
-            font-weight: 700;
-            color: #2563EB;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .card {
             background: white;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 12px;
-        }
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-        .stat-label {
-            color: #6B7280;
-        }
-        .stat-value {
-            font-weight: 600;
-        }
-        .toggle-container {
+            padding: 16px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            font-weight: 500;
+            border-bottom: 1px solid #E5E7EB;
         }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 36px;
-            height: 20px;
+
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 20px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: .4s;
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10B981;
             border-radius: 50%;
         }
-        input:checked + .slider {
-            background-color: #2563EB;
+
+        .container {
+            padding: 16px;
         }
-        input:checked + .slider:before {
-            transform: translateX(16px);
+
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
         }
-        .footer {
+
+        .stat-card {
+            flex: 1;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #E5E7EB;
             text-align: center;
-            font-size: 12px;
-            color: #9CA3AF;
-            margin-top: 16px;
-            cursor: pointer;
         }
-        .footer:hover {
-            text-decoration: underline;
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2563EB;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6B7280;
+            text-transform: uppercase;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .incident-list {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+            overflow: hidden;
+            min-height: 100px;
+        }
+
+        .incident-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .incident-item:last-child {
+            border-bottom: none;
+        }
+
+        .incident-info {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .incident-time {
+            font-size: 11px;
+            color: #9CA3AF;
+        }
+
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #9CA3AF;
+        }
+
+        .footer {
+            padding: 12px 16px;
+            border-top: 1px solid #E5E7EB;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background: #F3F4F6;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+
+        .btn:hover {
+            background: #E5E7EB;
         }
     </style>
 </head>
+
 <body>
     <div class="header">
-        <div class="logo">🛡️ VESSEL</div>
-        <div class="toggle-container">
-            <label class="switch">
-                <input type="checkbox" id="activeToggle" checked>
-                <span class="slider"></span>
-            </label>
+        <div class="logo">
+            <div class="status-dot"></div>
+            VESSEL
         </div>
     </div>
 
-    <div class="card">
-        <div style="font-size: 12px; color: #059669; font-weight: 600; margin-bottom: 8px;" id="statusText">System Active</div>
-        <div class="stat-row">
-            <span class="stat-label">Threats Blocked</span>
-            <span class="stat-value" id="blockedCount">0</span>
+    <div class="container">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="blocks-count">0</div>
+                <div class="stat-label">Blocks Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="risk-score">0.0</div>
+                <div class="stat-label">Avg Risk</div>
+            </div>
         </div>
-        <div class="stat-row">
-            <span class="stat-label">Specs Analyzed</span>
-            <span class="stat-value" id="analyzedCount">0</span>
+
+        <div class="section-title">
+            Recent Incidents
+            <span style="font-size: 11px; color: #9CA3AF; font-weight: 400;">Last 5</span>
+        </div>
+
+        <div class="incident-list" id="incident-list">
+            <div class="empty-state">No incidents yet</div>
         </div>
     </div>
 
-    <div class="footer" id="openOptions">Advanced Settings</div>
+    <div class="footer">
+        <button class="btn" id="open-options">Settings</button>
+    </div>
 
     <script src="popup.js"></script>
 </body>
+
 </html>
