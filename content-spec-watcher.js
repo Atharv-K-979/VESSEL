@@ -1,95 +1,143 @@
 (async () => {
-    // Dynamic import for modules
-    const uiUtilsParam = chrome.runtime.getURL('lib/ui-utils.js');
-    const uiUtils = await import(uiUtilsParam);
+    const src = chrome.runtime.getURL('lib/ui-utils.js');
+    const { createBadge, createModal, escapeHtml } = await import(src);
 
-    // TODO: move to policies
-    // Selectors for Spec Editors
     const EDITOR_SELECTORS = [
-        '.ak-editor-content-area', 
-        '[contenteditable="true"]', 
-        'textarea', 
-        '#spec-editor' 
+        '[data-testid="issue-description"]', // Jira?
+        '.ProseMirror', // Notion, Linear, many modern editors
+        'textarea[name="description"]',
+        'div[contenteditable="true"]',
+        'textarea' // Generic fallback, might be too broad but good for testing
     ];
 
     let activeBadge = null;
-    let debounceTimer = null;
-
-    console.log('[VESSEL] Spec Watcher Loaded');
-
-    function getEditorValue(element) {
-        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-            return element.value;
-        }
-        return element.innerText; 
-    }
-
-    function injectText(element, text) {
-        element.focus();
-        if (document.queryCommandSupported('insertText')) {
-            document.execCommand('insertText', false, text);
-        } else {
-            if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-                const start = element.selectionStart;
-                const end = element.selectionEnd;
-                const val = element.value;
-                element.value = val.substring(0, start) + text + val.substring(end);
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-            } else {
-                element.innerText += text;
-            }
-        }
-    }
-
-    async function analyzeContent(element) {
-        const text = getEditorValue(element);
-        if (!text || text.length < 10) return; // Ignore empty/short
-
-        console.log('[VESSEL] Analyzing Spec...');
-        if (activeBadge) {
-            activeBadge.textContent = "🛡️ Analyzing...";
-        }
-
-        try {
-            const response = await chrome.runtime.sendMessage({
-                action: 'analyzeSpec',
-                text: text
-            });
-
-            if (activeBadge) activeBadge.remove();
-            activeBadge = null;
-
-            if (response && response.missingRequirements && response.missingRequirements.length > 0) {
-                const count = response.missingRequirements.length;
-
-                activeBadge = uiUtils.showBadge(
-                    `${count} Security reqs missing`,
-                    () => showSuggestionsModal(element, response.missingRequirements)
-                );
-            }
-        } catch (err) {
-            console.error('[VESSEL] Spec analysis failed:', err);
-        }
-    }
-
-    function showSuggestionsModal(element, requirements) {
-        uiUtils.showSpecModal(requirements, (index, textToInject) => {
-            // Inject logic
-            injectText(element, `\n\n**Security Requirement (${requirements[index].category}):**\n${textToInject}`);
-        });
-    }
+    let analysisTimer = null;
+    const DEBOUNCE_MS = 3000;
 
     document.addEventListener('input', (e) => {
         const target = e.target;
-        const isEditor = EDITOR_SELECTORS.some(sel => target.matches(sel) || target.closest(sel));
-
-        if (isEditor) {
-            // Debounce
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                analyzeContent(target);
-            }, 3000); // 3 seconds
+        if (isEditor(target)) {
+            scheduleAnalysis(target);
         }
-    });
+    }, true);
+
+    function isEditor(element) {
+        return EDITOR_SELECTORS.some(sel => element.matches(sel) || element.closest(sel));
+    }
+
+    function scheduleAnalysis(target) {
+        if (analysisTimer) clearTimeout(analysisTimer);
+
+        analysisTimer = setTimeout(() => {
+            analyzeField(target);
+        }, DEBOUNCE_MS);
+    }
+
+    async function analyzeField(target) {
+        const text = getTextFromField(target);
+        if (!text || text.length < 10) return; // Ignore empty/short fields
+
+        chrome.runtime.sendMessage({
+            action: 'analyzeSpec',
+            text: text
+        }, (response) => {
+            if (chrome.runtime.lastError || !response || !response.missing) return;
+
+            updateUI(target, response.missing);
+        });
+    }
+
+    function getTextFromField(element) {
+        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+            return element.value;
+        }
+        return element.innerText; // contenteditable
+    }
+
+    function updateUI(target, missingRequirements) {
+        if (activeBadge) activeBadge.remove();
+
+        if (missingRequirements.length === 0) return;
+
+        const rect = target.getBoundingClientRect();
+
+        const badgeControl = createBadge(missingRequirements.length, () => {
+            showRequirementsModal(target, missingRequirements);
+        });
+
+        badgeControl.show();
+        badgeControl.updatePosition(rect);
+
+        activeBadge = badgeControl.element;
+    }
+
+    function showRequirementsModal(target, requirements) {
+        let contentHtml = `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+
+        requirements.forEach((req, index) => {
+            contentHtml += `
+                <div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #DC2626; font-size: 13px; text-transform: uppercase;">
+                            Missing: ${escapeHtml(req.category)}
+                        </span>
+                        <button class="vessel-inject-btn" data-index="${index}" style="
+                            background: #EFF6FF; color: #2563EB; border: none; 
+                            padding: 4px 8px; border-radius: 4px; font-size: 12px; 
+                            font-weight: 600; cursor: pointer;">
+                            + Inject
+                        </button>
+                    </div>
+                    <div style="font-size: 13px; color: #374151; line-height: 1.4;">
+                        ${escapeHtml(req.template)}
+                    </div>
+                </div>
+            `;
+        });
+        contentHtml += `</div>`;
+
+        const container = document.createElement('div');
+        container.innerHTML = contentHtml;
+
+        const modal = createModal(
+            "Security Requirements Assistant",
+            container,
+            [{ text: "Done", primary: true, onClick: () => modal.hide() }]
+        );
+
+        container.querySelectorAll('.vessel-inject-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-index'));
+                const req = requirements[index];
+                injectText(target, req.template);
+
+                btn.textContent = "Injected ✓";
+                btn.style.background = "#D1FAE5";
+                btn.style.color = "#059669";
+                btn.disabled = true;
+            });
+        });
+
+        modal.show();
+    }
+
+    function injectText(target, text) {
+        target.focus();
+
+        const success = document.execCommand('insertText', false, '\n\n' + text);
+
+        if (!success) {
+            if (target.tagName === 'TEXTAREA') {
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                const val = target.value;
+                target.value = val.substring(0, start) + '\n\n' + text + val.substring(end);
+
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                target.innerText += '\n\n' + text; // Simple fallback
+            }
+        }
+    }
 
 })();
