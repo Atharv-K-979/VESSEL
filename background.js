@@ -15,29 +15,33 @@ chrome.runtime.onInstalled.addListener(async () => {
     });
 });
 
+// Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    handleMessage(message).then(sendResponse);
+    (async () => {
+        try {
+            const response = await handleMessage(message);
+            sendResponse(response);
+        } catch (error) {
+            console.error('VESSEL: Worker error:', error);
+            sendResponse({ success: false, error: error.message });
+        }
+    })();
     return true; // Keep channel open for async response
 });
 
 async function handleMessage(message) {
-    try {
-        switch (message.action) {
-            case 'analyzePage':
-                return await analyzePageContent(message.html);
-            case 'analyzeSpec':
-                return await analyzeSpecification(message.text);
-            case 'summarize':
-                return await summarizeContent(message.text);
-            case 'logIncident':
-                return await logIncident(message.data);
-            default:
-                console.warn('Unknown action:', message.action);
-                return { error: 'Unknown action' };
-        }
-    } catch (error) {
-        console.error('Error handling message:', error);
-        return { error: error.message };
+    switch (message.action) {
+        case 'analyzePage':
+            return await analyzePageContent(message.html);
+        case 'analyzeSpec':
+            return await analyzeSpecification(message.text);
+        case 'summarize':
+            return await summarizeContent(message.text);
+        case 'logIncident':
+            return await logIncident(message.data);
+        default:
+            console.warn('Unknown action:', message.action);
+            return { error: 'Unknown action' };
     }
 }
 
