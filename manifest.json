@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "VESSEL - AI Security & Privacy",
+  "name": "VESSEL - AI & Data Security",
   "version": "1.0.0",
-  "description": "Protects developers using AI coding assistants against prompt injection and ensures secure specifications.",
+  "description": "Comprehensive security tool: AI prompt injection defense, secure spec assistant, and paste redaction.",
   "permissions": [
     "storage",
-    "unlimitedStorage",
-    "scripting",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,40 +17,60 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-ai-interceptor.js"],
-      "run_at": "document_start"
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-ai-interceptor.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     },
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-spec-watcher.js"],
-      "run_at": "document_idle"
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-spec-watcher.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-paste-redactor.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/ml-engine.js", "lib/sanitizer.js", "lib/ui-utils.js", "icons/*"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "lib/patterns.js",
+        "lib/sanitizer.js",
+        "lib/ui-utils.js",
+        "lib/ml-engine.js",
+        "icons/*.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "vessel@example.com",
-      "strict_min_version": "109.0"
-    }
-  },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-    }
+    "default_title": "VESSEL Security"
   },
   "options_ui": {
     "page": "options.html",
-    "open_in_tab": false
+    "open_in_tab": true
   },
   "icons": {
+    "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }
