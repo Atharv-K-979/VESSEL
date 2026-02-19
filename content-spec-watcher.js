@@ -1,9 +1,3 @@
-/**
- * VESSEL Spec Watcher
- * Monitors text input in specification tools (Jira, Notion, Linear, Confluence).
- * Analyzes content for missing security requirements.
- */
-
 (async () => {
     // Dynamic import for modules
     const uiUtilsParam = chrome.runtime.getURL('lib/ui-utils.js');
@@ -12,10 +6,10 @@
     // TODO: move to policies
     // Selectors for Spec Editors
     const EDITOR_SELECTORS = [
-        '.ak-editor-content-area', // Jira/Confluence (Atlassian)
-        '[contenteditable="true"]', // Generic rich text (Notion, Linear, etc.)
-        'textarea', // Basic Fallback
-        '#spec-editor' // Testing
+        '.ak-editor-content-area', 
+        '[contenteditable="true"]', 
+        'textarea', 
+        '#spec-editor' 
     ];
 
     let activeBadge = null;
@@ -27,27 +21,21 @@
         if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
             return element.value;
         }
-        return element.innerText; // or innerHTML depending on need
+        return element.innerText; 
     }
 
     function injectText(element, text) {
-        // This is tricky for rich text editors.
-        // Best effort: execCommand (deprecated but works) or simple append for textarea.
-
         element.focus();
         if (document.queryCommandSupported('insertText')) {
             document.execCommand('insertText', false, text);
         } else {
-            // Fallback for textarea/input
             if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
                 const start = element.selectionStart;
                 const end = element.selectionEnd;
                 const val = element.value;
                 element.value = val.substring(0, start) + text + val.substring(end);
-                // Dispatch input event to notify frameworks (React, etc)
                 element.dispatchEvent(new Event('input', { bubbles: true }));
             } else {
-                // Fallback for contenteditable: direct append (might break framework state)
                 element.innerText += text;
             }
         }
@@ -68,7 +56,6 @@
                 text: text
             });
 
-            // Remove existing badge to refresh
             if (activeBadge) activeBadge.remove();
             activeBadge = null;
 
@@ -92,13 +79,8 @@
         });
     }
 
-    // Attach listeners
-    // We use a global listener for delegation on Inputs, but for ContentEditable we might need direct attachment
-    // or a specialized observer.
-    // For simplicity: unique listener on documented 'input' events which bubbled from typical frameworks.
     document.addEventListener('input', (e) => {
         const target = e.target;
-        // Check if target matches our editors
         const isEditor = EDITOR_SELECTORS.some(sel => target.matches(sel) || target.closest(sel));
 
         if (isEditor) {

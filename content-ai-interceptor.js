@@ -3,13 +3,11 @@
     const uiUtils = await import(uiUtilsParam);
 
     // TODO: move this to chrome.storage.managed policies later
-    // Selectors for "Send" buttons of common AI tools
-    // These are placeholders/examples. In production, these need to be very specific and maintained.
     let AI_BUTTON_SELECTORS = [
-        'button[aria-label="Send message"]', // Common generic
-        'button[data-testid="send-button"]', // ChatGPT-like
-        '.ai-trigger', // For our manual testing
-        '#vessel-simulation-btn', // For simulation
+        'button[aria-label="Send message"]',
+        'button[data-testid="send-button"]', 
+        '.ai-trigger',
+        '#vessel-simulation-btn', 
         '#ai-assistant'
     ];
 
