@@ -1,106 +1,265 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VESSEL Settings</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #F3F4F6;
             margin: 0;
-            padding: 40px;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #F9FAFB;
             color: #1F2937;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 600px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 640px;
             background: white;
-            padding: 32px;
+            margin: 40px auto;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #E5E7EB;
         }
 
-        h1 {
-            margin-top: 0;
-            font-size: 24px;
+        .header {
+            padding: 24px;
+            border-bottom: 1px solid #E5E7EB;
+            background: white;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #6B7280;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .content {
+            padding: 24px;
         }
 
         .section {
-            margin-bottom: 24px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid #E5E7EB;
+            margin-bottom: 32px;
         }
 
-        .section:last-child {
-            border-bottom: none;
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #F3F4F6;
         }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 14px;
             font-weight: 500;
+            color: #111827;
         }
 
-        select,
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #D1D5DB;
-            border-radius: 6px;
-            margin-bottom: 12px;
-        }
-
-        button {
-            background: #2563EB;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        button:hover {
-            background: #1D4ED8;
-        }
-
-        .info {
+        .setting-desc {
             font-size: 13px;
             color: #6B7280;
-            margin-top: -8px;
-            margin-bottom: 12px;
+            margin-top: 2px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E5E7EB;
+            transition: .2s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        input:checked+.slider {
+            background-color: #2563EB;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Range Input */
+        input[type=range] {
+            width: 150px;
+        }
+
+        .range-value {
+            font-size: 13px;
+            font-weight: 500;
+            color: #2563EB;
+            width: 30px;
+            text-align: right;
+        }
+
+        .patterns-list {
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .pattern-tag {
+            display: inline-block;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #374151;
+            margin: 2px;
+        }
+
+        .footer {
+            padding: 16px 24px;
+            background: #F9FAFB;
+            border-top: 1px solid #E5E7EB;
+            text-align: right;
+        }
+
+        .status-msg {
+            font-size: 13px;
+            color: #059669;
+            margin-right: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>VESSEL Settings</h1>
-
-        <div class="section">
-            <label>ML Engine Backend</label>
-            <select id="engineType">
-                <option value="auto">Auto-Detect (Best Available)</option>
-                <option value="transformers">Transformers.js (In-Browser)</option>
-                <option value="firefox">Firefox Managed (Trial)</option>
-                <option value="mock">Mock Engine (Testing)</option>
-            </select>
-            <p class="info">Select which inference backend to use for analysis.</p>
+        <div class="header">
+            <div class="title">VESSEL Settings</div>
+            <div class="subtitle">Configure your security assistant preferences</div>
         </div>
 
-        <div class="section">
-            <label>Risk Threshold (0.0 - 1.0)</label>
-            <input type="number" id="riskThreshold" min="0" max="1" step="0.1" value="0.8">
-            <p class="info">Messages with a threat score above this will be blocked.</p>
+        <div class="content">
+            <!-- Feature 1 -->
+            <div class="section">
+                <div class="section-title">AI Prompt Injection Defense</div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Enable Protection</div>
+                        <div class="setting-desc">Intercepts and analyzes clicks on AI extension buttons.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="feature-ai-defense" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Threat Threshold</div>
+                        <div class="setting-desc">Sensitivity for blocking potential injections (0.1 - 1.0).</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="range" id="threshold-ai" min="0.1" max="1.0" step="0.1" value="0.7">
+                        <span class="range-value" id="threshold-ai-val">0.7</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="section">
+                <div class="section-title">Secure Specification Assistant</div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Enable Assistant</div>
+                        <div class="setting-desc">Analyzes spec editors for missing security requirements.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="feature-spec-assist" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="section">
+                <div class="section-title">Paste Redactor</div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Enable Redaction</div>
+                        <div class="setting-desc">Scans pasted text for sensitive data.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="feature-paste-redact" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item" style="display: block;">
+                    <div class="setting-label" style="margin-bottom: 8px;">Active Patterns</div>
+                    <div class="patterns-list" id="patterns-container">
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <button id="saveBtn">Save Settings</button>
-        <span id="msg" style="margin-left: 10px; color: green; display: none;">Saved!</span>
+        <div class="footer">
+            <span class="status-msg" id="status-msg">Settings Saved</span>
+        </div>
     </div>
-    <script src="options.js"></script>
+
+    <script src="options.js" type="module"></script>
 </body>
 
 </html>
