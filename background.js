@@ -1,96 +1,134 @@
-import { mlEngine } from './lib/ml-engine.js';
+import { MLEngine } from './lib/ml-engine.js';
 import { sanitizeDOM } from './lib/sanitizer.js';
-import { policyManager } from './lib/policy-manager.js';
 
-(async () => {
-    console.log('[VESSEL] Background Service Worker Starting...');
-    await Promise.all([
-        mlEngine.initialize(),
-        policyManager.loadPolicy()
-    ]);
-    console.log('[VESSEL] Services Ready (ML + Policy).');
-})();
+chrome.runtime.onInstalled.addListener(async () => {
+    await MLEngine.initialize();
+    console.log('VESSEL: Background service worker installed. ML Engine initialized.');
 
-// Message Handler
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    handleMessage(request, sender).then(sendResponse);
-    return true;
+    chrome.storage.local.get(['incidents', 'stats'], (result) => {
+        if (!result.stats) {
+            chrome.storage.local.set({
+                stats: { blocks: 0, avgRisk: 0, totalScans: 0 },
+                incidents: []
+            });
+        }
+    });
 });
 
-async function handleMessage(request, sender) {
-    if (request.action === 'analyzePage') {
-        return await analyzePage(request.html);
-    }
-    else if (request.action === 'analyzeSpec') {
-        return await analyzeSpec(request.text);
-    }
-    else if (request.action === 'summarize') {
-        return await mlEngine.summarize(request.text);
-    }
-}
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    handleMessage(message).then(sendResponse);
+    return true; // Keep channel open for async response
+});
 
-async function analyzePage(html) {
+async function handleMessage(message) {
     try {
-        console.log('[VESSEL] Sanitizing content...');
-        const cleanText = sanitizeDOM(html);
-
-        console.log('[VESSEL] Detecting injection...');
-        const result = await mlEngine.detectInjection(cleanText);
-
-        return result;
-    } catch (err) {
-        console.error('[VESSEL] Analysis error:', err);
-        return { isThreat: false, error: err.message };
+        switch (message.action) {
+            case 'analyzePage':
+                return await analyzePageContent(message.html);
+            case 'analyzeSpec':
+                return await analyzeSpecification(message.text);
+            case 'summarize':
+                return await summarizeContent(message.text);
+            case 'logIncident':
+                return await logIncident(message.data);
+            default:
+                console.warn('Unknown action:', message.action);
+                return { error: 'Unknown action' };
+        }
+    } catch (error) {
+        console.error('Error handling message:', error);
+        return { error: error.message };
     }
 }
 
+async function analyzePageContent(html) {
+    const cleanText = sanitizeDOM(html);
+    const threatScore = await MLEngine.detectInjection(cleanText);
 
-async function analyzeSpec(text) {
-    if (!text) return { missingRequirements: [] };
+    if (threatScore > 0.7) {
+        await logIncident({
+            type: 'prompt_injection',
+            details: 'Suspicious AI prompt detected',
+            score: threatScore,
+            timestamp: Date.now()
+        });
 
-    // Define standard security requirements to check for
-    const SECURITY_REQUIREMENTS = [
-        {
-            category: "Authentication",
-            keywords: ["login", "signin", "auth", "password", "mfa", "oauth", "sso"],
-            description: "Verify user identity securely.",
-            suggestion: "Ensure all user access requires multi-factor authentication (MFA). Use industry-standard protocols like OAuth2/OIDC. Never store passwords in plain text."
-        },
-        {
-            category: "Authorization",
-            keywords: ["role", "permission", "access control", "rbac", "scope"],
-            description: "Enforce least privilege access.",
-            suggestion: "Implement Role-Based Access Control (RBAC). Ensure users can only access data strictly necessary for their role."
-        },
-        {
-            category: "Input Validation",
-            keywords: ["sanitize", "validate", "input", "encoding", "escape"],
-            description: "Prevent injection attacks.",
-            suggestion: "Validate and sanitize all user inputs on the server side. Use parameterized queries to prevent SQL injection."
-        },
-        {
-            category: "Encryption",
-            keywords: ["encrypt", "tls", "ssl", "https", "hashing", "aes"],
-            description: "Protect data at rest and in transit.",
-            suggestion: "Encrypt sensitive data at rest using AES-256. Enforce TLS 1.3 for all data in transit. Do not hardcode encryption keys."
-        }
+        updateStats(threatScore, true);
+    } else {
+        updateStats(threatScore, false);
+    }
+
+    return {
+        score: threatScore,
+        sanitized: cleanText
+    };
+}
+
+async function analyzeSpecification(text) {
+    const labels = [
+        "authentication",
+        "authorization",
+        "encryption",
+        "input validation",
+        "audit logging",
+        "rate limiting"
     ];
 
-    // Merge with custom policy requirements
-    const policy = policyManager.get();
-    if (policy.customRequirements && Array.isArray(policy.customRequirements)) {
-        SECURITY_REQUIREMENTS.push(...policy.customRequirements);
-    }
+    const results = await MLEngine.classify(text, labels);
 
-    const missing = [];
-    const lowerText = text.toLowerCase();
+    const missing = results
+        .filter(r => r.score < 0.5)
+        .map(r => ({
+            category: r.label,
+            template: getRequirementTemplate(r.label)
+        }));
 
-    for (const req of SECURITY_REQUIREMENTS) {
-        const hasKeyword = req.keywords.some(k => lowerText.includes(k));
-        if (!hasKeyword) {
-            missing.push(req);
-        }
-    }
+    return { missing };
+}
 
-    return { missingRequirements: missing };
+function getRequirementTemplate(category) {
+    const templates = {
+        "authentication": "The system must enforce multi-factor authentication (MFA) for all administrative access and sensitive actions.",
+        "authorization": "Access control lists (ACLs) must be checked at the API gateway level to ensure users can only access their own data.",
+        "encryption": "All sensitive data at rest must be encrypted using AES-256. Data in transit must use TLS 1.3.",
+        "input validation": "All user inputs must be validated against a strict allowlist of expected formats and types.",
+        "audit logging": "All security-critical events (login flags, sensitive data access) must be logged with timestamp, user ID, and source IP.",
+        "rate limiting": "API endpoints must implement rate limiting (e.g., 100 req/min) to prevent abuse and DoS attacks."
+    };
+    return templates[category] || "Security requirement missing.";
+}
+
+// General Summarization
+async function summarizeContent(text) {
+    return await MLEngine.summarize(text);
+}
+
+// Logging and Stats
+async function logIncident(data) {
+    const { incidents = [] } = await chrome.storage.local.get('incidents');
+    incidents.unshift(data);
+
+    // Keep last 50 incidents
+    if (incidents.length > 50) incidents.pop();
+
+    await chrome.storage.local.set({ incidents });
+    return { success: true };
+}
+
+async function updateStats(riskScore, isBlock) {
+    const { stats } = await chrome.storage.local.get('stats');
+    if (!stats) return;
+
+    const newTotal = (stats.totalScans || 0) + 1;
+    const currentAvg = stats.avgRisk || 0;
+    // Moving average approximation
+    const newAvg = ((currentAvg * (newTotal - 1)) + riskScore) / newTotal;
+
+    const newStats = {
+        blocks: (stats.blocks || 0) + (isBlock ? 1 : 0),
+        avgRisk: parseFloat(newAvg.toFixed(2)),
+        totalScans: newTotal
+    };
+
+    await chrome.storage.local.set({ stats: newStats });
 }
