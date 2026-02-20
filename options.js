@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function restoreOptions() {
-    chrome.storage.local.get(['settings'], (result) => {
+    chrome.storage.local.get(['settings', 'geminiApiKey'], (result) => {
         const settings = result.settings || DEFAULTS;
 
         // Toggles
@@ -29,6 +29,11 @@ async function restoreOptions() {
         const aiThreshold = settings.thresholds.aiInjection;
         document.getElementById('threshold-ai').value = aiThreshold;
         document.getElementById('threshold-ai-val').textContent = aiThreshold;
+
+        // API Key
+        if (result.geminiApiKey) {
+            document.getElementById('gemini-api-key').value = result.geminiApiKey;
+        }
     });
 }
 
@@ -58,7 +63,9 @@ function saveOptions() {
         }
     };
 
-    chrome.storage.local.set({ settings }, () => {
+    const geminiApiKey = document.getElementById('gemini-api-key').value;
+
+    chrome.storage.local.set({ settings, geminiApiKey }, () => {
         showStatus('Settings Saved');
     });
 }
