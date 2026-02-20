@@ -122,9 +122,13 @@
                 const results = await Promise.all(promises);
                 requirements.push(...results);
 
-                const modal = createRequirementsModal(requirements, (textToInject) => {
-                    injectText(target, textToInject);
-                });
+                const modal = createRequirementsModal(
+                    requirements,
+                    (textToInject) => {
+                        injectText(target, textToInject);
+                    },
+                    geminiClient ? geminiClient.isConfigured() : false
+                );
 
                 document.body.appendChild(modal);
 
@@ -136,7 +140,7 @@
         }
 
         function showBadge(targetElement, count, onClick) {
-            hideBadge(); 
+            hideBadge();
 
             const rect = targetElement.getBoundingClientRect();
 
