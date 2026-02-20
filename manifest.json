@@ -54,6 +54,8 @@
         "lib/sanitizer.js",
         "lib/ui-utils.js",
         "lib/ml-engine.js",
+        "lib/gemini-client.js",
+        "models/*.onnx",
         "icons/*.png"
       ],
       "matches": [
