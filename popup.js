@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadStats();
-    loadIncidents();
+    loadActivity();
     setupListeners();
 });
 
@@ -12,46 +12,73 @@ function setupListeners() {
             window.open(chrome.runtime.getURL('options.html'));
         }
     });
+
+    document.getElementById('open-dashboard').addEventListener('click', () => {
+        window.open(chrome.runtime.getURL('options.html'));
+    });
 }
 
 function loadStats() {
-    chrome.storage.local.get('stats', (data) => {
-        const stats = data.stats || { blocks: 0, avgRisk: 0 };
+    chrome.storage.local.get(['stats', 'threatsBlocked', 'specsAnalyzed', 'redactionsCount'], (data) => {
+        const blocks = data.stats?.blocks || data.threatsBlocked || 0;
+        const specs = data.stats?.specs || data.specsAnalyzed || 0;
+        const redactions = data.stats?.redactions || data.redactionsCount || 0;
 
-        document.getElementById('blocks-count').textContent = stats.blocks || 0;
-        document.getElementById('risk-score').textContent = (stats.avgRisk || 0).toFixed(1);
+        animateValue('threats-blocked', 0, blocks, 1000);
+        animateValue('specs-analyzed', 0, specs, 1000);
+        animateValue('redactions-count', 0, redactions, 1000);
     });
 }
 
-function loadIncidents() {
-    chrome.storage.local.get('incidents', (data) => {
-        const incidents = data.incidents || [];
-        const listContainer = document.getElementById('incident-list');
+function loadActivity() {
+    chrome.storage.local.get('activityLog', (data) => {
+        const activities = data.activityLog || [];
+        const list = document.getElementById('activity-list');
+        list.innerHTML = '';
 
-        if (incidents.length === 0) {
-            listContainer.innerHTML = '<div class="empty-state">No incidents recorded yet.</div>';
+        if (activities.length === 0) {
+            list.innerHTML = '<div class="empty-state">No recent activity</div>';
             return;
         }
 
-        listContainer.innerHTML = '';
-        // Show last 5
-        incidents.slice(0, 5).forEach(incident => {
-            const el = document.createElement('div');
-            el.className = 'incident-item';
-            const date = new Date(incident.timestamp);
-            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let label = 'Security Event';
-            if (incident.type === 'prompt_injection') label = 'Prompt Injection';
-            if (incident.type === 'sensitive_paste') label = 'Sensitive Paste'; // if we logged this
+        activities.slice(0, 5).forEach(act => {
+            const item = document.createElement('div');
+            item.className = 'activity-item';
 
-            el.innerHTML = `
-                <div class="incident-info">
-                   ${label}
-                   <div style="font-size: 10px; color: #6B7280; margin-top: 2px;">Score: ${(incident.score * 10).toFixed(1)}</div>
+            let icon = '🛡️';
+            if (act.type === 'redaction') icon = '📝';
+            if (act.type === 'spec') icon = '📋';
+
+            item.innerHTML = `
+                <div class="activity-icon">${icon}</div>
+                <div class="activity-details">
+                    <div class="activity-title">${act.title}</div>
+                    <div class="activity-meta">${new Date(act.timestamp).toLocaleTimeString()}</div>
                 </div>
-                <div class="incident-time">${timeStr}</div>
             `;
-            listContainer.appendChild(el);
+            list.appendChild(item);
         });
     });
+}
+
+function animateValue(id, start, end, duration) {
+    if (start === end) return;
+    const range = end - start;
+    let current = start;
+    const increment = end > start ? 1 : -1;
+    const stepTime = Math.abs(Math.floor(duration / range));
+    const obj = document.getElementById(id);
+
+    if (range > 100) {
+        obj.textContent = end;
+        return;
+    }
+
+    const timer = setInterval(function () {
+        current += increment;
+        obj.textContent = current;
+        if (current == end) {
+            clearInterval(timer);
+        }
+    }, stepTime);
 }

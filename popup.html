@@ -5,145 +5,197 @@
     <meta charset="UTF-8">
     <title>VESSEL Security</title>
     <style>
+        :root {
+            --bg-primary: #111827;
+            --bg-secondary: #1F2937;
+            --text-primary: #F9FAFB;
+            --text-secondary: #9CA3AF;
+            --accent: #8B5CF6;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --danger: #EF4444;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+
         body {
-            width: 320px;
+            width: 360px;
             margin: 0;
             padding: 0;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #F9FAFB;
-            color: #1F2937;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
 
         .header {
-            background: white;
-            padding: 16px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #E5E7EB;
         }
 
         .logo {
             font-weight: 700;
-            font-size: 18px;
-            color: #111827;
+            font-size: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #10B981;
-            border-radius: 50%;
+        .status-badge {
+            font-size: 10px;
+            padding: 4px 8px;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
         .container {
-            padding: 16px;
+            padding: 20px;
         }
 
-        .stats-row {
-            display: flex;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .stat-card {
-            flex: 1;
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            border: 1px solid #E5E7EB;
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
             text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(139, 92, 246, 0.3);
         }
 
         .stat-value {
             font-size: 24px;
             font-weight: 700;
-            color: #2563EB;
-            line-height: 1.2;
+            margin-bottom: 4px;
         }
 
         .stat-label {
             font-size: 11px;
-            color: #6B7280;
+            color: var(--text-secondary);
             text-transform: uppercase;
-            margin-top: 4px;
-            font-weight: 500;
+            letter-spacing: 0.5px;
         }
 
-        .section-title {
+        .section-header {
             font-size: 13px;
             font-weight: 600;
-            color: #374151;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .incident-list {
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #E5E7EB;
-            overflow: hidden;
-            min-height: 100px;
-        }
-
-        .incident-item {
-            padding: 10px 12px;
-            border-bottom: 1px solid #F3F4F6;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .incident-item:last-child {
+        .activity-list {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .activity-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.2s;
+        }
+
+        .activity-item:last-child {
             border-bottom: none;
         }
 
-        .incident-info {
-            font-size: 13px;
-            font-weight: 500;
-            color: #374151;
+        .activity-item:hover {
+            background: rgba(255, 255, 255, 0.02);
         }
 
-        .incident-time {
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .activity-meta {
             font-size: 11px;
-            color: #9CA3AF;
+            color: var(--text-secondary);
         }
 
         .empty-state {
-            padding: 20px;
+            padding: 24px;
             text-align: center;
+            color: var(--text-secondary);
             font-size: 13px;
-            color: #9CA3AF;
         }
 
         .footer {
-            padding: 12px 16px;
-            border-top: 1px solid #E5E7EB;
-            background: white;
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 10px;
         }
 
         .btn {
-            background: #F3F4F6;
-            border: 1px solid #E5E7EB;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            color: #374151;
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
             cursor: pointer;
-            text-decoration: none;
-            transition: background 0.15s;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
-        .btn:hover {
-            background: #E5E7EB;
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
         }
     </style>
 </head>
@@ -151,35 +203,44 @@
 <body>
     <div class="header">
         <div class="logo">
-            <div class="status-dot"></div>
-            VESSEL
+            <span>⚡ VESSEL</span>
         </div>
+        <div class="status-badge">Active</div>
     </div>
 
     <div class="container">
-        <div class="stats-row">
+        <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-value" id="blocks-count">0</div>
-                <div class="stat-label">Blocks Today</div>
+                <div class="stat-value" id="threats-blocked">0</div>
+                <div class="stat-label">Threats Blocked</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="risk-score">0.0</div>
-                <div class="stat-label">Avg Risk</div>
+                <div class="stat-value" id="specs-analyzed">0</div>
+                <div class="stat-label">Specs Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="redactions-count">0</div>
+                <div class="stat-label">Redactions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--accent);">A+</div>
+                <div class="stat-label">Security Grade</div>
             </div>
         </div>
 
-        <div class="section-title">
-            Recent Incidents
-            <span style="font-size: 11px; color: #9CA3AF; font-weight: 400;">Last 5</span>
+        <div class="section-header">
+            <span>RECENT ACTIVITY</span>
+            <span style="font-size: 11px; cursor: pointer; color: var(--accent);">View All</span>
         </div>
 
-        <div class="incident-list" id="incident-list">
-            <div class="empty-state">No incidents yet</div>
+        <div class="activity-list" id="activity-list">
+            <div class="empty-state">No recent activity</div>
         </div>
     </div>
 
     <div class="footer">
-        <button class="btn" id="open-options">Settings</button>
+        <button class="btn btn-secondary" id="open-options">Settings</button>
+        <button class="btn btn-primary" id="open-dashboard">Dashboard</button>
     </div>
 
     <script src="popup.js"></script>
