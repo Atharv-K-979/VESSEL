@@ -1,0 +1,32 @@
+# === Chrome Extension & General ===
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# === Python & Machine Learning ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.env
+.pytest_cache/
+.ipynb_checkpoints/
+
+# === ML Models & Large Binaries ===
+# Ignore raw models and training data if they are very large
+*.onnx
+*.pt
+*.pth
+*.bin
+*.csv
+# If you want to keep models in the repo, use Git LFS instead of ignoring them
+
+# === Project Specific ===
+# Ignore icons if they are generated or temporary
+icons/temp_*

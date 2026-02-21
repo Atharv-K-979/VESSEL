@@ -17,15 +17,12 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    (async () => {
-        try {
-            const response = await handleMessage(message);
-            sendResponse(response);
-        } catch (error) {
+    handleMessage(message)
+        .then(sendResponse)
+        .catch(error => {
             console.error('VESSEL: Worker error:', error);
             sendResponse({ success: false, error: error.message });
-        }
-    })();
+        });
     return true; // Keep channel open for async response
 });
 

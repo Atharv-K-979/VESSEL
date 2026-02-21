@@ -44,6 +44,7 @@
                 }, (response) => {
                     if (chrome.runtime.lastError) {
                         console.error('VESSEL: Analysis failed', chrome.runtime.lastError);
+                        bypassAndClick(target); // Fallback to safe state
                         return;
                     }
 
@@ -118,13 +119,9 @@
         function bypassAndClick(target) {
             isBypassing = true;
             target.click();
-            // Reset flag after a short delay to ensure the click event has fully propagated
-            // through the capture phase (and subsequent phases) without being intercepted again.
-            // Since click() is synchronous, the event loop handles this immediately, 
-            // but a microtask or small timeout is safer if there are async listeners.
-            // However, for this specific flow, resetting immediately *after* click() returns should be fine
-            // because the event dispatch is synchronous.
-            isBypassing = false;
+            setTimeout(() => {
+                isBypassing = false;
+            }, 100);
         }
 
     } catch (e) {

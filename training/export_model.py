@@ -3,7 +3,10 @@ import torch.onnx
 import onnx
 import onnxruntime
 import numpy as np
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from model_architecture import RequirementClassifier
 
 def convert_to_onnx(pytorch_model_path, onnx_model_path, input_dim):
@@ -72,6 +75,10 @@ if __name__ == "__main__":
     
     onnx_path = os.path.join(project_root, 'models', 'requirement-model.onnx')
     
-    INPUT_DIM = 786 
+    # 7 categories * 2 (count + bool) = 14
+    # + 2 text stats (len, words)
+    # + 2 specific indicators (http, digit)
+    # Total = 18
+    INPUT_DIM = 18 
     
     convert_to_onnx(pytorch_path, onnx_path, input_dim=INPUT_DIM)

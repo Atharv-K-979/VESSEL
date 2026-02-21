@@ -3,16 +3,17 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from transformers import AutoTokenizer, AutoModel
 import torch
-import re
 
 class FeatureExtractor:
-    def __init__(self, use_transformer=True):
+    def __init__(self, use_transformer=True, use_tfidf=True):
         self.use_transformer = use_transformer
+        self.use_tfidf = use_tfidf
+        
         if use_transformer:
             print("Loading CodeBERT model...")
             self.tokenizer = AutoTokenizer.from_pretrained('microsoft/codebert-base')
             self.model = AutoModel.from_pretrained('microsoft/codebert-base')
-        else:
+        elif use_tfidf:
             self.tfidf = TfidfVectorizer(max_features=500, stop_words='english')
             
         self.technical_keywords = {
@@ -31,10 +32,12 @@ class FeatureExtractor:
         
         if self.use_transformer:
             embedding_features = self.extract_codebert_features(texts)
-        else:
+            return np.hstack([embedding_features, technical_features])
+        elif self.use_tfidf:
             embedding_features = self.extract_tfidf_features(texts)
-            
-        return np.hstack([embedding_features, technical_features])
+            return np.hstack([embedding_features, technical_features])
+        else:
+            return technical_features
 
     def extract_tfidf_features(self, texts):
         return self.tfidf.fit_transform(texts).toarray()
@@ -65,8 +68,8 @@ class FeatureExtractor:
             
             for category, keywords in self.technical_keywords.items():
                 count = sum(1 for kw in keywords if kw in lower_text)
-                row_feats.append(count) 
-                row_feats.append(1 if count > 0 else 0)
+                row_feats.append(float(count)) 
+                row_feats.append(1.0 if count > 0 else 0.0)
                 
             row_feats.append(len(text) / 1000) # Normalized length
             row_feats.append(len(text.split()) / 100) # Word count

@@ -53,8 +53,11 @@
         "lib/patterns.js",
         "lib/sanitizer.js",
         "lib/ui-utils.js",
+        "lib/redactor.js",
         "lib/ml-engine.js",
+        "lib/onnxruntime-web.min.js",
         "lib/gemini-client.js",
+        "lib/*.wasm",
         "models/*.onnx",
         "icons/*.png"
       ],
@@ -75,5 +78,8 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   }
 }

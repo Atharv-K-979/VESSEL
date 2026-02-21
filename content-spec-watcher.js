@@ -1,27 +1,23 @@
 (async () => {
     try {
-        const mlEngineSrc = chrome.runtime.getURL('lib/ml-engine.js');
         const geminiClientSrc = chrome.runtime.getURL('lib/gemini-client.js');
         const uiUtilsSrc = chrome.runtime.getURL('lib/ui-utils.js');
 
         const [
-            { MLEngine },
             { default: GeminiClient },
             { createBadge, createRequirementsModal }
         ] = await Promise.all([
-            import(mlEngineSrc),
             import(geminiClientSrc),
             import(uiUtilsSrc)
         ]);
 
-        let mlEngine = new MLEngine();
+        let mlEngine = null; // Removed Direct Import
         let geminiClient = null;
         let activeBadge = null;
         let typingTimer = null;
         const ANALYSIS_DELAY = 1500; // Wait 1.5s after typing stops
 
-        await mlEngine.initialize();
-
+        // Initialize Config only
         chrome.storage.local.get(['geminiApiKey'], (result) => {
             if (result.geminiApiKey) {
                 geminiClient = new GeminiClient(result.geminiApiKey);
@@ -67,55 +63,49 @@
         async function analyzeSpec(target) {
             const text = getText(target);
 
-            if (!text || text.length < 20 || !containsTechnicalTerms(text)) {
+            if (!text || typeof text !== 'string' || text.length < 20 || !containsTechnicalTerms(text)) {
                 hideBadge();
                 return;
             }
 
-            const categories = [
-                'missing_auth',
-                'missing_authz',
-                'missing_encryption',
-                'missing_validation',
-                'missing_audit',
-                'missing_ratelimit'
-            ];
+            if (!chrome.runtime?.id) {
+                console.warn('[VESSEL] Extension context invalidated. Please refresh the page.');
+                return;
+            }
 
-            const results = await mlEngine.classify(text, categories);
+            const response = await chrome.runtime.sendMessage({ action: 'analyzeSpec', text: text });
 
-            const missing = results.filter(r => r.score > 0.5);
-
-            if (missing.length === 0) {
+            if (!response || !response.missing || response.missing.length === 0) {
                 hideBadge();
                 return;
             }
 
-            showBadge(target, missing.length, async () => {
-                await showRequirementsUI(target, text, missing);
+            showBadge(target, response.missing.length, async () => {
+                await showRequirementsUI(target, text, response.missing);
             });
         }
 
         async function showRequirementsUI(target, contextText, missingItems) {
-
+            if (!missingItems || !missingItems.length) return;
             const requirements = [];
 
             document.body.style.cursor = 'wait';
 
             try {
                 const promises = missingItems.map(async (item) => {
-                    let category = item.label; // e.g. missing_auth
+                    let category = item.category || item.label; // Handle both formats just in case
 
                     let reqText;
                     if (geminiClient) {
                         reqText = await geminiClient.generateRequirement(category, contextText);
                     } else {
-                        reqText = "Authentication is required.";
+                        reqText = item.template || "Security requirement missing.";
                     }
 
                     return {
                         category: category.replace('missing_', ''),
                         description: reqText,
-                        confidence: item.score
+                        confidence: item.score || 0.9
                     };
                 });
 

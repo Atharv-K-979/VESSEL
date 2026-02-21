@@ -96,8 +96,9 @@ def augment_dataset(input_file, output_file, variations_per_sample=3):
     print(f"Saved to {output_file}")
 
 if __name__ == "__main__":
-    input_path = 'training/data/raw_samples.csv'
-    output_path = 'training/data/augmented_samples.csv'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    input_path = os.path.join(base_dir, 'data', 'raw_samples.csv')
+    output_path = os.path.join(base_dir, 'data', 'augmented_samples.csv')
     
     # Ensure directories exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

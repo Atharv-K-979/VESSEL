@@ -11,14 +11,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from feature_engineering import FeatureExtractor
 from model_architecture import RequirementClassifier
 
 # Constants
-DATA_PATH_RAW = 'training/data/raw_samples.csv'
-DATA_PATH_AUG = 'training/data/augmented_samples.csv'
-MODEL_SAVE_PATH = 'training/best_model.pt'
-LOGS_DIR = 'training/logs'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH_RAW = os.path.join(BASE_DIR, 'data', 'raw_samples.csv')
+DATA_PATH_AUG = os.path.join(BASE_DIR, 'data', 'augmented_samples.csv')
+MODEL_SAVE_PATH = os.path.join(BASE_DIR, 'best_model.pt')
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 BATCH_SIZE = 32
 EPOCHS = 100
 LEARNING_RATE = 1e-4 # Lower LR for stability
@@ -149,7 +153,7 @@ if __name__ == "__main__":
     print(f"Using dataset: {data_path}")
     
     # Feature Extraction
-    extractor = FeatureExtractor(use_transformer=True)
+    extractor = FeatureExtractor(use_transformer=False, use_tfidf=False)
     
     train_loader, val_loader, input_dim = load_and_prepare_data(data_path, extractor)
     

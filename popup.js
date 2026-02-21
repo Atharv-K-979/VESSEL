@@ -31,8 +31,8 @@ function loadStats() {
 }
 
 function loadActivity() {
-    chrome.storage.local.get('activityLog', (data) => {
-        const activities = data.activityLog || [];
+    chrome.storage.local.get('incidents', (data) => {
+        const activities = data.incidents || [];
         const list = document.getElementById('activity-list');
         list.innerHTML = '';
 
@@ -47,12 +47,14 @@ function loadActivity() {
 
             let icon = '🛡️';
             if (act.type === 'redaction') icon = '📝';
-            if (act.type === 'spec') icon = '📋';
+            if (act.type === 'spec' || act.type === 'prompt_injection') icon = '📋';
+
+            const title = act.title || act.details || "Security Event";
 
             item.innerHTML = `
                 <div class="activity-icon">${icon}</div>
                 <div class="activity-details">
-                    <div class="activity-title">${act.title}</div>
+                    <div class="activity-title">${title}</div>
                     <div class="activity-meta">${new Date(act.timestamp).toLocaleTimeString()}</div>
                 </div>
             `;
