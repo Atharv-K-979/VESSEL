@@ -15,6 +15,8 @@
         let geminiClient = null;
         let activeBadge = null;
         let typingTimer = null;
+        let isSuppressed = false;
+        let currentTarget = null;
         const ANALYSIS_DELAY = 1500; // Wait 1.5s after typing stops
 
         // Initialize Config only
@@ -43,6 +45,11 @@
         function handleFocus(e) {
             const target = e.target;
             if (isTextArea(target)) {
+                if (currentTarget !== target) {
+                    isSuppressed = false;
+                    currentTarget = target;
+                }
+
                 if (target.value && target.value.length > 20) {
                     analyzeSpec(target);
                 }
@@ -61,6 +68,7 @@
         }
 
         async function analyzeSpec(target) {
+            if (isSuppressed) return;
             const text = getText(target);
 
             if (!text || typeof text !== 'string' || text.length < 20 || !containsTechnicalTerms(text)) {
@@ -115,7 +123,9 @@
                 const modal = createRequirementsModal(
                     requirements,
                     (textToInject) => {
+                        isSuppressed = true;
                         injectText(target, textToInject);
+                        hideBadge();
                     },
                     geminiClient ? geminiClient.isConfigured() : false
                 );

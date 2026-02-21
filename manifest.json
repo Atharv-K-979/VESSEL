@@ -28,13 +28,13 @@
     },
     {
       "matches": [
-        "<all_urls>"
+        "https://*.atlassian.net/*",
+        "http://127.0.0.1:5500/*"
       ],
       "js": [
         "content-spec-watcher.js"
       ],
-      "run_at": "document_idle",
-      "all_frames": false
+      "run_at": "document_idle"
     },
     {
       "matches": [
