@@ -57,6 +57,7 @@
         "lib/ml-engine.js",
         "lib/onnxruntime-web.min.js",
         "lib/gemini-client.js",
+        "lib/transformers.js",
         "lib/*.wasm",
         "models/*.onnx",
         "icons/*.png"

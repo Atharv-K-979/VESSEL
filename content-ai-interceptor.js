@@ -2,7 +2,7 @@
 (async () => {
     try {
         const src = chrome.runtime.getURL('lib/ui-utils.js');
-        const { createModal, escapeHtml } = await import(src);
+        const { createModal, escapeHtml, showThreatModal, insertText } = await import(src);
 
         const AI_BUTTON_SELECTORS = [
             '[data-testid="comet-summarize"]',
@@ -49,7 +49,7 @@
                     }
 
                     if (response && response.score > 0.7) {
-                        showRiskModal(response, target);
+                        showRiskModal(response, target, pageContent);
                     } else {
                         bypassAndClick(target);
                     }
@@ -57,63 +57,42 @@
             }
         }
 
-        function showRiskModal(analysis, originalTarget) {
-            const content = `
-                <div style="color: #4B5563; margin-bottom: 12px;">
-                    <p><strong>Threat Score:</strong> <span style="color: #DC2626; font-weight: bold;">${(analysis.score * 10).toFixed(1)}/10</span></p>
-                    <p>This page contains hidden text or instructions that may manipulate the AI assistant.</p>
-                    <div style="margin-top: 10px; font-size: 13px; color: #6B7280;">
-                        Detected: Potential Prompt Injection
-                    </div>
-                </div>
-            `;
-
+        function showRiskModal(analysis, originalTarget, originalText) {
             if (modalInstance) modalInstance.hide();
 
-            modalInstance = createModal(
-                "⚠️ Security Risk Detected",
-                content,
-                [
-                    {
-                        text: "View Sanitized Version",
-                        primary: true,
-                        onClick: () => {
-                            modalInstance.hide();
-                            showSanitizedVersion(analysis.sanitized);
-                        }
-                    },
-                    {
-                        text: "Proceed Anyway (Risky)",
-                        primary: false,
-                        onClick: () => {
-                            modalInstance.hide();
-                            bypassAndClick(originalTarget);
-                        }
-                    },
-                    {
-                        text: "Cancel",
-                        primary: false,
-                        onClick: () => modalInstance.hide()
+            modalInstance = showThreatModal(
+                analysis.score,
+                originalText,
+                analysis.sanitized,
+                () => { // Proceed
+                    modalInstance = null;
+                    bypassAndClick(originalTarget);
+                },
+                () => { // Send Sanitized
+                    modalInstance = null;
+                    // Attempt to find the closest AI input field or fallback to any text area
+                    let inputField = originalTarget.closest('form')?.querySelector('textarea, [contenteditable="true"], input[type="text"]');
+                    if (!inputField) {
+                        inputField = document.querySelector('textarea, [contenteditable="true"], input[type="text"]');
                     }
-                ]
+
+                    if (inputField) {
+                        // Clear the current value and set it to sanitized
+                        if (inputField.tagName === 'INPUT' || inputField.tagName === 'TEXTAREA') {
+                            inputField.value = '';
+                        } else if (inputField.isContentEditable) {
+                            inputField.innerHTML = '';
+                        }
+                        insertText(inputField, analysis.sanitized);
+                    } else {
+                        console.warn("[VESSEL] No input field found to inject sanitized text.");
+                    }
+                    bypassAndClick(originalTarget);
+                },
+                () => { // Cancel
+                    modalInstance = null;
+                }
             );
-            modalInstance.show();
-        }
-
-        function showSanitizedVersion(cleanText) {
-            if (!chrome.runtime?.id) return;
-
-            chrome.runtime.sendMessage({ action: 'summarize', text: cleanText }, (response) => {
-                if (chrome.runtime.lastError) return;
-
-                const summary = response || "Summary unavailable.";
-                const resultModal = createModal(
-                    "Sanitized Content Summary",
-                    `<div style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;">${escapeHtml(summary)}</div>`,
-                    [{ text: "Close", primary: true, onClick: () => resultModal.hide() }]
-                );
-                resultModal.show();
-            });
         }
 
         function bypassAndClick(target) {

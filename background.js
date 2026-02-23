@@ -1,5 +1,6 @@
 import { MLEngine } from './lib/ml-engine.js';
 import { sanitizeDOM } from './lib/sanitizer.js';
+import GeminiClient from './lib/gemini-client.js';
 
 chrome.runtime.onInstalled.addListener(async () => {
     await MLEngine.initialize();
@@ -15,7 +16,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     });
 });
 
-// Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleMessage(message)
         .then(sendResponse)
@@ -66,23 +66,24 @@ async function analyzePageContent(html) {
 }
 
 async function analyzeSpecification(text) {
-    const labels = [
-        "authentication",
-        "authorization",
-        "encryption",
-        "input validation",
-        "audit logging",
-        "rate limiting"
-    ];
+    const { geminiApiKey } = await chrome.storage.local.get('geminiApiKey');
 
-    const results = await MLEngine.classify(text, labels);
+    let requirements = [];
 
-    const missing = results
-        .filter(r => r.score < 0.5)
-        .map(r => ({
-            category: r.label,
-            template: getRequirementTemplate(r.label)
-        }));
+    if (geminiApiKey) {
+        console.log('Sending spec to Gemini for analysis...');
+        const geminiClient = new GeminiClient(geminiApiKey);
+        requirements = await geminiClient.generateRequirements(text);
+    } else {
+        console.log('Gemini API key not found, attempting local generation...');
+        requirements = await MLEngine.generateRequirements(text);
+    }
+
+    const missing = requirements.map(reqText => ({
+        category: 'Generated Requirement',
+        template: reqText,
+        score: 0.9
+    }));
 
     return { missing };
 }
