@@ -8,7 +8,6 @@
             '[data-testid="comet-summarize"]',
             '.perplexity-comet-trigger',
             '.ai-summarize-btn',
-            // Common ones
             '[aria-label*="Summarize"]',
             '[title*="Summarize"]',
             '#ai-assistant'
@@ -17,47 +16,91 @@
         let modalInstance = null;
         let isBypassing = false;
 
-        document.addEventListener('click', handleAIClick, true);
+        document.addEventListener('click', handleUserAction, true);
+        document.addEventListener('keydown', handleUserAction, true);
 
-        function handleAIClick(event) {
+        function handleUserAction(event) {
             if (isBypassing) return;
 
             const target = event.target;
-            const isAIButton = AI_BUTTON_SELECTORS.some(sel => target.matches(sel) || target.closest(sel));
 
-            if (isAIButton) {
-                console.log('VESSEL: Intercepted AI button click.');
+            let isAIAction = false;
+            let inputElement = null;
+
+            if (event.type === 'click') {
+                isAIAction = AI_BUTTON_SELECTORS.some(sel => {
+                    try { return target.matches(sel) || target.closest(sel); }
+                    catch (e) { return false; } // in case of :has() unsupported
+                });
+                if (isAIAction) inputElement = document.querySelector('textarea, [contenteditable="true"]');
+            } else if (event.type === 'keydown' && event.key === 'Enter' && !event.shiftKey) {
+                if (target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                    isAIAction = true;
+                    inputElement = target;
+                }
+            }
+
+            if (isAIAction) {
+                // Must stop events immediately to block the AI site's native submission
+                event.stopImmediatePropagation();
+                event.preventDefault();
+
+                console.log('VESSEL: Intercepted AI action.');
 
                 if (!chrome.runtime?.id) {
                     console.warn('[VESSEL] Extension context invalidated. Please refresh the page.');
                     return;
                 }
 
-                event.preventDefault();
-                event.stopImmediatePropagation();
-
-                const pageContent = document.body.innerHTML;
+                const pageContext = capturePageContext(inputElement);
 
                 chrome.runtime.sendMessage({
-                    action: 'analyzePage',
-                    html: pageContent
+                    action: 'analyzePrompt',
+                    text: pageContext.text,
+                    html: pageContext.html
                 }, (response) => {
                     if (chrome.runtime.lastError) {
                         console.error('VESSEL: Analysis failed', chrome.runtime.lastError);
-                        bypassAndClick(target); // Fallback to safe state
+                        bypassAndExecute(event, target);
                         return;
                     }
 
                     if (response && response.score > 0.7) {
-                        showRiskModal(response, target, pageContent);
+                        try {
+                            showRiskModal(response, event, target, pageContext.text);
+                        } catch (e) {
+                            console.error('[VESSEL] UI Modal failed to render.', e);
+                        }
                     } else {
-                        bypassAndClick(target);
+                        bypassAndExecute(event, target);
                     }
                 });
             }
         }
 
-        function showRiskModal(analysis, originalTarget, originalText) {
+        function capturePageContext(inputElement) {
+            let contextText = "";
+
+            // Extract text from the active input
+            if (inputElement) {
+                contextText += (inputElement.value || inputElement.innerText || "") + "\n\n";
+            }
+
+            // aggressive scan for hidden elements
+            const hiddenElements = document.querySelectorAll('[style*="display: none"], [style*="display:none"], [style*="opacity: 0"], [style*="opacity:0"], [aria-hidden="true"]');
+            hiddenElements.forEach(el => {
+                if (el.innerText && el.innerText.trim().length > 0) {
+                    contextText += `[Hidden Payload]: ${el.innerText}\n`;
+                }
+            });
+
+            return {
+                text: contextText.trim(),
+                html: document.body.innerHTML // Send full HTML for further DOM-level analysis by ML
+            };
+        }
+
+        function showRiskModal(analysis, originalEvent, originalTarget, originalText) {
             if (modalInstance) modalInstance.hide();
 
             modalInstance = showThreatModal(
@@ -66,7 +109,7 @@
                 analysis.sanitized,
                 () => { // Proceed
                     modalInstance = null;
-                    bypassAndClick(originalTarget);
+                    bypassAndExecute(originalEvent, originalTarget);
                 },
                 () => { // Send Sanitized
                     modalInstance = null;
@@ -87,7 +130,7 @@
                     } else {
                         console.warn("[VESSEL] No input field found to inject sanitized text.");
                     }
-                    bypassAndClick(originalTarget);
+                    bypassAndExecute(originalEvent, originalTarget);
                 },
                 () => { // Cancel
                     modalInstance = null;
@@ -95,9 +138,24 @@
             );
         }
 
-        function bypassAndClick(target) {
+        function bypassAndExecute(event, target) {
             isBypassing = true;
-            target.click();
+
+            if (event.type === 'click') {
+                target.click();
+            } else if (event.type === 'keydown') {
+                // Simulate enter key again
+                const enterEvent = new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13,
+                    bubbles: true,
+                    cancelable: true
+                });
+                target.dispatchEvent(enterEvent);
+            }
+
             setTimeout(() => {
                 isBypassing = false;
             }, 100);

@@ -11,15 +11,14 @@
             import(uiUtilsSrc)
         ]);
 
-        let mlEngine = null; 
+        let mlEngine = null;
         let geminiClient = null;
         let activeBadge = null;
         let typingTimer = null;
-        let isSuppressed = false;
         let currentTarget = null;
-        const ANALYSIS_DELAY = 1500; 
+        const ANALYSIS_DELAY = 1500;
 
-            chrome.storage.local.get(['geminiApiKey'], (result) => {
+        chrome.storage.local.get(['geminiApiKey'], (result) => {
             if (result.geminiApiKey) {
                 geminiClient = new GeminiClient(result.geminiApiKey);
             } else {
@@ -29,10 +28,21 @@
 
         document.addEventListener('input', handleInput, true);
         document.addEventListener('focusin', handleFocus, true);
+        document.addEventListener('paste', handlePaste, true);
+
+        function getTargetElement(el) {
+            if (!el) return null;
+            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return el;
+            if (el.closest && el.closest('[contenteditable="true"]')) {
+                return el.closest('[contenteditable="true"]');
+            }
+            if (el.isContentEditable || el.role === 'textbox') return el;
+            return null;
+        }
 
         function handleInput(e) {
-            const target = e.target;
-            if (!isTextArea(target)) return;
+            const target = getTargetElement(e.target);
+            if (!target) return;
 
             if (typingTimer) clearTimeout(typingTimer);
 
@@ -41,36 +51,40 @@
             }, ANALYSIS_DELAY);
         }
 
+        function handlePaste(e) {
+            const target = getTargetElement(e.target);
+            if (!target) return;
+
+            if (typingTimer) clearTimeout(typingTimer);
+
+            // Wait for typing delay before parsing pasted text
+            typingTimer = setTimeout(() => {
+                analyzeSpec(target);
+            }, ANALYSIS_DELAY);
+        }
+
         function handleFocus(e) {
-            const target = e.target;
-            if (isTextArea(target)) {
+            const target = getTargetElement(e.target);
+            if (target) {
                 if (currentTarget !== target) {
-                    isSuppressed = false;
                     currentTarget = target;
                 }
 
-                if (target.value && target.value.length > 20) {
+                if (getText(target)) {
                     analyzeSpec(target);
                 }
             }
         }
 
-        function isTextArea(el) {
-            return el.tagName === 'TEXTAREA' ||
-                (el.tagName === 'DIV' && el.isContentEditable) ||
-                el.role === 'textbox';
-        }
-
         function getText(el) {
-            if (el.tagName === 'TEXTAREA') return el.value;
-            return el.innerText; 
+            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return el.value || "";
+            return el.innerText || el.textContent || "";
         }
 
         async function analyzeSpec(target) {
-            if (isSuppressed) return;
             const text = getText(target);
 
-            if (!text || typeof text !== 'string' || text.length < 20 || !containsTechnicalTerms(text)) {
+            if (!text || typeof text !== 'string') {
                 hideBadge();
                 return;
             }
@@ -156,7 +170,6 @@
                 const modal = createRequirementsModal(
                     requirements,
                     (textToInject) => {
-                        isSuppressed = true;
                         injectText(target, textToInject);
                         hideBadge();
                     },

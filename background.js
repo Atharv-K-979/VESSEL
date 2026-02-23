@@ -29,7 +29,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function handleMessage(message) {
     switch (message.action) {
         case 'analyzePage':
-            return await analyzePageContent(message.html);
+        case 'analyzePrompt':
+            // Merge both analyzing actions through the same injection engine
+            return await analyzePageContent(message.html, message.text);
         case 'analyzeSpec':
             return await analyzeSpecification(message.text);
         case 'summarize':
@@ -42,9 +44,10 @@ async function handleMessage(message) {
     }
 }
 
-async function analyzePageContent(html) {
-    const cleanText = sanitizeDOM(html);
-    const threatScore = await MLEngine.detectInjection(cleanText);
+async function analyzePageContent(html, text = "") {
+    const cleanHtml = sanitizeDOM(html);
+    const combinedContent = `${text}\n${cleanHtml}`;
+    const threatScore = await MLEngine.detectInjection(combinedContent);
 
     if (threatScore > 0.7) {
         await logIncident({
@@ -61,7 +64,7 @@ async function analyzePageContent(html) {
 
     return {
         score: threatScore,
-        sanitized: cleanText
+        sanitized: combinedContent
     };
 }
 
