@@ -14,7 +14,7 @@ function setupListeners() {
     });
 
     document.getElementById('open-dashboard').addEventListener('click', () => {
-        window.open(chrome.runtime.getURL('options.html'));
+        window.open(chrome.runtime.getURL('dashboard.html'));
     });
 }
 

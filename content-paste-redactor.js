@@ -1,6 +1,5 @@
 (async () => {
     try {
-        // Dynamic imports
         const patternsSrc = chrome.runtime.getURL('lib/patterns.js');
         const uiSrc = chrome.runtime.getURL('lib/ui-utils.js');
 
@@ -23,7 +22,6 @@
                 const matches = scanForSensitiveData(pastedText);
 
                 if (matches && matches.length > 0) {
-                    // Only stop default paste if we found sensitive data
                     event.preventDefault();
                     event.stopImmediatePropagation();
 
@@ -32,7 +30,6 @@
 
                     showRedactionModal(field, pastedText, matches);
                 }
-                // If NO sensitive data, we let the default browser paste proceed normally!
             } catch (err) {
                 console.error('[VESSEL] Paste handler error:', err);
             }
@@ -54,7 +51,7 @@
                         name: pattern.name,
                         type: pattern.name,
                         value: match[0],
-                        0: match[0], // Required by redact function
+                        0: match[0], 
                         index: match.index,
                         length: match[0].length,
                         patternObj: pattern
