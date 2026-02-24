@@ -10,7 +10,10 @@
             '.ai-summarize-btn',
             '[aria-label*="Summarize"]',
             '[title*="Summarize"]',
-            '#ai-assistant'
+            '#ai-assistant',
+            '[data-test-id="send-button"]', // Gemini submit
+            'button[aria-label="Send message"]', // ChatGPT submit
+            '.notion-ai-button' // Notion AI
         ];
 
         let modalInstance = null;

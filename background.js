@@ -33,6 +33,7 @@ async function handleMessage(message) {
             // Merge both analyzing actions through the same injection engine
             return await analyzePageContent(message.html, message.text);
         case 'analyzeSpec':
+        case 'GENERATE_SPECS':
             return await analyzeSpecification(message.text);
         case 'summarize':
             return await summarizeContent(message.text);

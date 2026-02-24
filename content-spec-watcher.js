@@ -99,23 +99,30 @@
                 return;
             }
 
-            showLoadingBadge(target);
+            // Show a generic available badge. We do NOT analyze it in the background until clicked.
+            showBadge(target, '⚡', async () => {
+                showLoadingBadge(target);
 
-            try {
-                const response = await chrome.runtime.sendMessage({ action: 'analyzeSpec', text: text });
+                try {
+                    const response = await chrome.runtime.sendMessage({ action: 'GENERATE_SPECS', text: text });
 
-                if (!response || !response.missing || response.missing.length === 0) {
-                    hideBadge();
-                    return;
-                }
+                    if (!response || !response.missing || response.missing.length === 0) {
+                        await showRequirementsUI(target, text, [{
+                            category: "System Check",
+                            template: "Scan completed. No missing security requirements or specific vulnerabilities were flagged for this architecture.",
+                            score: 1.0
+                        }]);
+                        hideBadge();
+                        return;
+                    }
 
-                showBadge(target, response.missing.length, async () => {
                     await showRequirementsUI(target, text, response.missing);
-                });
-            } catch (error) {
-                console.error("[VESSEL] Error analyzing spec:", error);
-                hideBadge();
-            }
+                    hideBadge();
+                } catch (error) {
+                    console.error("[VESSEL] Error analyzing spec:", error);
+                    hideBadge();
+                }
+            });
         }
 
         function showLoadingBadge(targetElement) {
@@ -183,7 +190,8 @@
                         } catch (e) {
                             console.error('[VESSEL] Error prepending text', e);
                         }
-
+                    },
+                    () => {
                         if (modal) modal.remove();
                         hideBadge();
                     },
@@ -205,6 +213,7 @@
             const rect = targetElement.getBoundingClientRect();
 
             activeBadge = createBadge(count, onClick);
+            activeBadge.title = `Click to generate security requirements for this specification.`;
 
             const top = rect.top + window.scrollY - 10;
             const left = rect.right + window.scrollX - 10;
