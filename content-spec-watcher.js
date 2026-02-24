@@ -5,7 +5,7 @@
 
         const [
             { default: GeminiClient },
-            { createBadge, createRequirementsModal, insertText }
+            { createBadge, createRequirementsModal, insertText, prependText }
         ] = await Promise.all([
             import(geminiClientSrc),
             import(uiUtilsSrc)
@@ -174,8 +174,17 @@
             try {
                 const modal = createRequirementsModal(
                     requirements,
-                    (textToInject) => {
-                        insertText(target, '\n\n' + textToInject);
+                    (suggestionsArray) => {
+                        const singleString = Array.isArray(suggestionsArray) ? suggestionsArray.join('\n') : suggestionsArray;
+                        const formattedText = `> "[\n${singleString}\n]"`;
+
+                        try {
+                            prependText(target, formattedText);
+                        } catch (e) {
+                            console.error('[VESSEL] Error prepending text', e);
+                        }
+
+                        if (modal) modal.remove();
                         hideBadge();
                     },
                     geminiClient ? geminiClient.isConfigured() : false
