@@ -52,7 +52,8 @@
                     return;
                 }
 
-                const pageContext = capturePageContext(inputElement);
+                const isChatAction = event.type === 'keydown';
+                const pageContext = capturePageContext(inputElement, !isChatAction);
 
                 chrome.runtime.sendMessage({
                     action: 'analyzePrompt',
@@ -78,7 +79,7 @@
             }
         }
 
-        function capturePageContext(inputElement) {
+        function capturePageContext(inputElement, includeHtml = true) {
             let contextText = "";
 
             // Extract text from the active input
@@ -86,17 +87,19 @@
                 contextText += (inputElement.value || inputElement.innerText || "") + "\n\n";
             }
 
-            // aggressive scan for hidden elements
-            const hiddenElements = document.querySelectorAll('[style*="display: none"], [style*="display:none"], [style*="opacity: 0"], [style*="opacity:0"], [aria-hidden="true"]');
-            hiddenElements.forEach(el => {
-                if (el.innerText && el.innerText.trim().length > 0) {
-                    contextText += `[Hidden Payload]: ${el.innerText}\n`;
-                }
-            });
+            if (includeHtml) {
+                // aggressive scan for hidden elements
+                const hiddenElements = document.querySelectorAll('[style*="display: none"], [style*="display:none"], [style*="opacity: 0"], [style*="opacity:0"], [aria-hidden="true"]');
+                hiddenElements.forEach(el => {
+                    if (el.innerText && el.innerText.trim().length > 0) {
+                        contextText += `[Hidden Payload]: ${el.innerText}\n`;
+                    }
+                });
+            }
 
             return {
                 text: contextText.trim(),
-                html: document.body.innerHTML // Send full HTML for further DOM-level analysis by ML
+                html: includeHtml ? document.body.innerHTML : "" // Send full HTML only if requested
             };
         }
 

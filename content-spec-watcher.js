@@ -5,7 +5,7 @@
 
         const [
             { default: GeminiClient },
-            { createBadge, createRequirementsModal }
+            { createBadge, createRequirementsModal, insertText }
         ] = await Promise.all([
             import(geminiClientSrc),
             import(uiUtilsSrc)
@@ -85,6 +85,11 @@
             const text = getText(target);
 
             if (!text || typeof text !== 'string') {
+                hideBadge();
+                return;
+            }
+
+            if (!containsTechnicalTerms(text) || text.trim().length < 10) {
                 hideBadge();
                 return;
             }
@@ -170,7 +175,7 @@
                 const modal = createRequirementsModal(
                     requirements,
                     (textToInject) => {
-                        injectText(target, textToInject);
+                        insertText(target, '\n\n' + textToInject);
                         hideBadge();
                     },
                     geminiClient ? geminiClient.isConfigured() : false
@@ -209,17 +214,7 @@
             }
         }
 
-        function injectText(target, text) {
-            target.focus();
-            if (document.execCommand('insertText', false, '\n\n' + text)) {
-                return;
-            }
-            if (target.tagName === 'TEXTAREA') {
-                target.value += '\n\n' + text;
-            } else {
-                target.innerText += '\n\n' + text;
-            }
-        }
+
 
         function containsTechnicalTerms(text) {
             const technicalTerms = [
