@@ -87,6 +87,15 @@ The name **VESSEL** was inspired by research into software supply chain security
 
 While their tool secures *Docker* containers from malware during the build process, this project operates on the philosophy that **the web browser is the modern enterprise's ultimate container**. Both tools share the same goal: mathematically verifying the cargo inside a vessel before it is deployed into a hostile environment.
 
+
+## ✍️Blog
+
+# 
+A detailed explanation of the design and implementation decisions is available here:
+
+Medium : https://medium.com/@atharvvk853/vessel-vulnerability-evaluation-and-secure-software-engineering-layer-78250e113b8a?postPublishedType=repub
+
+
 ## 🤝 Contributing
 
 This project was originally built as a proof-of-concept DevSecOps tool for a hackathon. If you are a developer interested in Chrome MV3 architecture, local WebAssembly ML models, or browser-native security, contributions are welcome!
