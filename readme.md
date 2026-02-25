@@ -1,1 +1,0 @@
-# VESSEL is a browser extension that protects developers using AI coding assistants. 
