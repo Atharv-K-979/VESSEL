@@ -89,8 +89,6 @@ While their tool secures *Docker* containers from malware during the build proce
 
 
 ## ✍️Blog
-
-# 
 A detailed explanation of the design and implementation decisions is available here:
 
 Medium : https://medium.com/@atharvvk853/vessel-vulnerability-evaluation-and-secure-software-engineering-layer-78250e113b8a?postPublishedType=repub
