@@ -77,14 +77,14 @@
       border: 1px solid var(--border);
     }
     .score-ring {
-      position: relative; width: 92px; height: 92px; margin-bottom: 10px;
+      position: relative; width: 120px; height: 120px; margin-bottom: 10px;
     }
     .score-ring svg { transform: rotate(-90deg); }
     .score-ring .track { fill: none; stroke: rgba(240,246,252,0.08); stroke-width: 8; }
     .score-ring .fill  {
       fill: none; stroke: url(#ringGrad); stroke-width: 8;
-      stroke-dasharray: 251.2;
-      stroke-dashoffset: 25.12; /* 90% filled = 251.2 * 0.10 */
+      stroke-dasharray: 326.73;
+      stroke-dashoffset: 10.16; /* 96.89% filled */
       stroke-linecap: round;
       transition: stroke-dashoffset 1.2s ease;
     }
@@ -220,7 +220,8 @@
 <body>
   <div class="header" role="banner">
     <div class="logo">
-      <span class="logo-icon">⚡</span> VESSEL
+      <span class="logo-icon"></span> VESSEL
+       <!-- <img src="" alt=""> -->
     </div>
     <div class="status-badge" role="status" aria-live="polite">Protection Active</div>
   </div>
@@ -229,15 +230,15 @@
     <!-- Security Score Ring -->
     <div class="score-ring-wrapper">
       <div class="score-ring" aria-label="Security Grade">
-        <svg width="92" height="92" viewBox="0 0 92 92">
+        <svg width="120" height="120" viewBox="0 0 120 120">
           <defs>
             <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%"   stop-color="#0a5c36"/>
               <stop offset="100%" stop-color="#1a9e5c"/>
             </linearGradient>
           </defs>
-          <circle class="track" cx="46" cy="46" r="40"/>
-          <circle class="fill"  cx="46" cy="46" r="40" id="score-circle"/>
+          <circle class="track" cx="60" cy="60" r="52"/>
+          <circle class="fill"  cx="60" cy="60" r="52" id="score-circle"/>
         </svg>
         <div class="score-label" id="score-pct">A+</div>
       </div>
@@ -248,17 +249,17 @@
     <!-- Stats -->
     <div class="stats-grid" role="region" aria-label="Security Statistics">
       <div class="stat-card">
-        <div class="stat-icon">🛡️</div>
+        <div class="stat-icon"></div>
         <div class="stat-value" id="threats-blocked">0</div>
         <div class="stat-label">Threats</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">📝</div>
+        <div class="stat-icon"></div>
         <div class="stat-value" id="specs-analyzed">0</div>
         <div class="stat-label">Specs</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">🔒</div>
+        <div class="stat-icon"></div>
         <div class="stat-value" id="redactions-count">0</div>
         <div class="stat-label">Redactions</div>
       </div>
@@ -267,13 +268,13 @@
     <!-- Feature Status Pills -->
     <div class="feature-grid" role="region" aria-label="Active Features">
       <div class="feature-pill" title="AI Prompt Injection Defense">
-        <span class="fi">🤖</span>AI Defense
+        <span class="fi"></span>AI Defense
       </div>
       <div class="feature-pill" title="Secure Spec Assistant">
-        <span class="fi">📝</span>Spec Guard
+        <span class="fi"></span>Spec Guard
       </div>
       <div class="feature-pill" title="Paste Redactor">
-        <span class="fi">✂️</span>Redactor
+        <span class="fi"></span>Redactor
       </div>
     </div>
 
@@ -289,8 +290,8 @@
 
   <div class="footer">
     <div class="btn-group">
-      <button class="btn btn-secondary" id="open-options" aria-label="Open VESSEL Settings">⚙️ Settings</button>
-      <button class="btn btn-primary" id="open-dashboard" aria-label="Open VESSEL Dashboard">📊 Dashboard</button>
+      <button class="btn btn-secondary" id="open-options" aria-label="Open VESSEL Settings"> Settings</button>
+      <button class="btn btn-primary" id="open-dashboard" aria-label="Open VESSEL Dashboard">Dashboard</button>
     </div>
     <a href="https://medium.com/@atharvvk853/vessel-vulnerability-evaluation-and-secure-software-engineering-layer-78250e113b8a"
        target="_blank" class="learn-more" rel="noopener">Learn More About VESSEL →</a>

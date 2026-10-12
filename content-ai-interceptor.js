@@ -38,12 +38,14 @@
 
         document.addEventListener('click', handleUserAction, true);
         document.addEventListener('keydown', handleUserAction, true);
+        document.addEventListener('copy', handleCopy, true);
 
         function handleUserAction(event) {
             // Guard: If extension context is gone, unbind and let events pass natively
             if (!isContextValid()) {
                 document.removeEventListener('click', handleUserAction, true);
                 document.removeEventListener('keydown', handleUserAction, true);
+                document.removeEventListener('copy', handleCopy, true);
                 return;
             }
 
@@ -144,6 +146,152 @@
                 text: contextText.trim(),
                 html: includeHtml ? document.body.innerHTML : "" // Send full HTML only if requested
             };
+        }
+
+        function handleCopy(event) {
+            if (!isContextValid()) {
+                document.removeEventListener('copy', handleCopy, true);
+                return;
+            }
+            if (isBypassing) return;
+
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+
+            // Clone to container to inspect exactly what's being copied, 
+            // including visually hidden nodes missed by selection.toString()
+            const range = selection.getRangeAt(0);
+            const container = document.createElement('div');
+            container.appendChild(range.cloneContents());
+            
+            const copiedHtml = container.innerHTML;
+            const copiedTextWithHidden = container.textContent || '';
+            const copiedText = copiedTextWithHidden; // Always use textual representation including hidden content for ML to score correctly
+
+            if (!copiedText.trim()) return;
+
+            // Synchronous fast check for prompt injection keywords against textContent
+            const lower = copiedText.toLowerCase();
+            const keywords = ['ignore all previous', 'system override', 'jailbreak', 'you are now dan', 'disregard', 'hidden instructions'];
+            const isSuspicious = keywords.some(kw => lower.includes(kw));
+
+            // If not suspicious, let native copy occur
+            if (!isSuspicious) {
+                // We'll also still do a quick obfuscation check just in case
+                const threats = detectObfuscatedPayloads(copiedHtml);
+                if (!threats || threats.length === 0) return; // Clean
+            }
+
+            // Stop the native copy event synchronously to prevent the payload from reaching the clipboard
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            const threats = detectObfuscatedPayloads(copiedHtml);
+
+            console.log('[VESSEL] Suspicious copy intercepted. Analyzing via ML...');
+
+            // Clear clipboard natively so `execCommand('copy')` fails to get the payload
+            if (event.clipboardData) {
+                event.clipboardData.clearData();
+            }
+
+            chrome.runtime.sendMessage({
+                action: 'analyzePrompt',
+                text: copiedText,
+                threats: threats
+            }, (response) => {
+                if (chrome.runtime.lastError || !response || response.score <= 0.7) {
+                    // False positive, allow copy manually
+                    isBypassing = true;
+                    writeToClipboard(copiedText, copiedHtml).finally(() => { isBypassing = false; });
+                    return;
+                }
+
+                // High risk detected! Show modal.
+                if (modalInstance) modalInstance.hide();
+
+                try {
+                    chrome.runtime.sendMessage({
+                        action: 'logIncident',
+                        data: {
+                            type: 'prompt_injection',
+                            details: 'Blocked malicious copy: Prompt injection payload detected.',
+                            score: response.score,
+                            timestamp: Date.now()
+                        }
+                    }).catch(() => {});
+                } catch(e) {}
+
+                modalInstance = showThreatModal(
+                    response.score,
+                    copiedText,
+                    response.sanitized,
+                    threats,
+                    () => { // Proceed
+                        modalInstance = null;
+                        isBypassing = true;
+                        writeToClipboard(copiedText, copiedHtml).finally(() => { isBypassing = false; });
+                    },
+                    () => { // Sanitize
+                        modalInstance = null;
+                        isBypassing = true;
+                        writeToClipboard(response.sanitized, response.sanitized).finally(() => { isBypassing = false; });
+                    },
+                    () => { // Cancel
+                        modalInstance = null;
+                    }
+                );
+            });
+        }
+
+        // Intercept Document.execCommand to catch programmatic copies
+        const originalExecCommand = document.execCommand;
+        document.execCommand = function(command, ...args) {
+            if (command.toLowerCase() === 'copy' && !isBypassing) {
+                // Determine target node for the event based on selection
+                let target = document;
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    target = range.commonAncestorContainer;
+                    if (target.nodeType === Node.TEXT_NODE) {
+                        target = target.parentNode;
+                    }
+                }
+
+                const event = new ClipboardEvent('copy', { cancelable: true, bubbles: true });
+                target.dispatchEvent(event);
+                if (event.defaultPrevented) return false;
+            }
+            return originalExecCommand.apply(this, [command, ...args]);
+        };
+
+        async function writeToClipboard(plainText, htmlText) {
+            try {
+                // Clipboard API requires secure context and user activation
+                if (navigator.clipboard && window.isSecureContext) {
+                    const item = new ClipboardItem({
+                        'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                        'text/html': new Blob([htmlText], { type: 'text/html' })
+                    });
+                    await navigator.clipboard.write([item]);
+                    return;
+                }
+            } catch (e) {
+                console.warn('[VESSEL] Clipboard API failed, falling back to execCommand', e);
+            }
+            
+            // Fallback for non-secure contexts (like file:// or some http)
+            const textarea = document.createElement('textarea');
+            textarea.value = plainText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            isBypassing = true; // prevent infinite loop
+            originalExecCommand.call(document, 'copy');
+            isBypassing = false;
+            document.body.removeChild(textarea);
         }
 
         function showRiskModal(analysis, originalEvent, originalTarget, originalText) {

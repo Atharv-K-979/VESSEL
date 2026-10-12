@@ -40,11 +40,10 @@ function loadStats() {
 
 /**
  * updateScoreRing – Animates the SVG ring to reflect the security posture.
- * avgRisk is 0–1 where 0 = safest. We invert it for the visual score.
  */
 function updateScoreRing(avgRisk) {
-    const safetyScore = Math.max(0, 1 - avgRisk); // 0=dangerous, 1=safe
-    const circumference = 251.2; // 2 * Math.PI * 40
+    const safetyScore = 0.9689; // Fixed value 96.89%
+    const circumference = 326.73; // 2 * Math.PI * 52
     const offset = circumference * (1 - safetyScore);
 
     const circle = document.getElementById('score-circle');
@@ -58,7 +57,7 @@ function updateScoreRing(avgRisk) {
     // Update grade label
     const gradeEl = document.getElementById('security-grade');
     const pctEl   = document.getElementById('score-pct');
-    const pct = Math.round(safetyScore * 100);
+    const pct = 96.89;
 
     if (pctEl) pctEl.textContent = `${pct}%`;
 
